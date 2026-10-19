@@ -22,7 +22,7 @@ export function Layout() {
     <div className="min-h-dvh md:flex">
       {/* Desktop sidebar */}
       <aside className="sticky top-0 hidden h-dvh w-56 shrink-0 flex-col border-r border-line bg-surface px-3 py-5 md:flex">
-        <div className="mb-6 px-2 text-sm font-semibold tracking-tight">Tài chính cá nhân</div>
+        <div className="mb-6 px-2 text-sm font-semibold tracking-tight">Nuôi heo</div>
         <nav className="flex flex-col gap-0.5">
           {NAV.map(({ to, label, icon: Icon }) => (
             <NavLink

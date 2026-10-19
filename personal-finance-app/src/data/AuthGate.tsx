@@ -36,7 +36,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
     return (
       <CenteredMessage>
         <div className="w-full max-w-xs rounded-2xl border border-line bg-surface p-6">
-          <h1 className="mb-1 text-lg font-semibold text-ink">Tài chính cá nhân</h1>
+          <h1 className="mb-1 text-lg font-semibold text-ink">Nuôi heo</h1>
           <p className="mb-5 text-sm text-muted">Đăng nhập để xem và ghi chi tiêu.</p>
           <button
             type="button"
