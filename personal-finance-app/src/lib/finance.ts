@@ -146,6 +146,7 @@ export function generateRecurring(
           categoryId: r.categoryId,
           note: r.name,
           recurringId: r.id,
+          period,
           createdAt: new Date().toISOString(),
         })
         lastPeriod = period

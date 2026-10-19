@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
-import { ChartColumn, LayoutDashboard, NotebookPen, Plus, Repeat, Wallet } from 'lucide-react'
+import { ChartColumn, LayoutDashboard, LogOut, NotebookPen, Plus, Repeat, Wallet } from 'lucide-react'
+import { useAppData } from '../data/AppDataContext'
+import { signOut } from '../data/AuthGate'
 import { TransactionForm } from './TransactionForm'
 import { Modal } from './ui'
 
@@ -14,6 +16,7 @@ const NAV = [
 
 export function Layout() {
   const [adding, setAdding] = useState(false)
+  const { syncError, reload } = useAppData()
 
   return (
     <div className="min-h-dvh md:flex">
@@ -37,10 +40,26 @@ export function Layout() {
             </NavLink>
           ))}
         </nav>
+        <button
+          type="button"
+          onClick={signOut}
+          className="mt-auto flex cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-ink-2 hover:bg-hover hover:text-ink"
+        >
+          <LogOut size={17} strokeWidth={1.8} />
+          Đăng xuất
+        </button>
       </aside>
 
       <main className="min-w-0 flex-1 px-4 pt-5 pb-28 md:px-8 md:pt-8 md:pb-12">
         <div className="mx-auto max-w-5xl">
+          {syncError && (
+            <div role="alert" className="mb-4 flex items-center justify-between gap-3 rounded-xl bg-bad-wash px-4 py-3 text-sm text-bad">
+              <span>{syncError}</span>
+              <button type="button" onClick={reload} className="shrink-0 cursor-pointer font-medium underline">
+                Tải lại
+              </button>
+            </div>
+          )}
           <Outlet />
         </div>
       </main>

@@ -35,6 +35,8 @@ export interface Transaction {
   note?: string
   /** set when the app created this from a recurring item */
   recurringId?: string
+  /** YYYY-MM the recurring item was generated for */
+  period?: string
   createdAt: string
 }
 

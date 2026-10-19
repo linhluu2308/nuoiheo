@@ -15,7 +15,7 @@ export interface Draft {
 
 export type DraftErrors = Partial<Record<keyof Draft, string>>
 
-export type TransactionInput = Omit<Transaction, 'id' | 'createdAt' | 'recurringId'>
+export type TransactionInput = Omit<Transaction, 'id' | 'createdAt' | 'recurringId' | 'period'>
 
 export const emptyDraft = (today: string, keep: Partial<Draft> = {}): Draft => ({
   type: 'expense',

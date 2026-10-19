@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from 'react'
-import { Eye, EyeOff, Pencil, Plus } from 'lucide-react'
+import { Eye, EyeOff, LogOut, Pencil, Plus } from 'lucide-react'
 import { Button, Card, Field, Modal, PageHeader, Segmented, inputClass } from '../components/ui'
 import { useAppData } from '../data/AppDataContext'
+import { signOut } from '../data/AuthGate'
 import { walletBalances } from '../lib/finance'
 import { formatVND, parseAmount } from '../lib/money'
 import type { Category, CategoryKind, Wallet, WalletKind } from '../lib/types'
@@ -18,9 +19,14 @@ export function Wallets() {
       <PageHeader
         title="Ví & khoản mục"
         actions={
-          <Button variant="primary" onClick={() => setEditing('new')}>
-            <Plus size={16} /> Thêm ví
-          </Button>
+          <>
+            <Button variant="ghost" className="md:hidden" onClick={signOut}>
+              <LogOut size={16} /> Đăng xuất
+            </Button>
+            <Button variant="primary" onClick={() => setEditing('new')}>
+              <Plus size={16} /> Thêm ví
+            </Button>
+          </>
         }
       />
 
