@@ -1,9 +1,0 @@
-{
-  "folders": [
-    { "name": "Workspace", "path": "." },
-    { "name": "personal-finance-app", "path": "personal-finance-app" }
-  ],
-  "settings": {
-    "files.exclude": { "personal-finance-app": true }
-  }
-}
