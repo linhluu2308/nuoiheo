@@ -1,7 +1,7 @@
 // All database access. Maps the app's shapes (types.ts) to the tables in supabase/schema.sql.
 // user_id is filled in by the database (default auth.uid()) and enforced by row-level security.
 
-import type { AppData, Category, Recurring, Transaction, Wallet } from '../lib/types'
+import type { AppData, Category, Planned, Recurring, Transaction, Wallet } from '../lib/types'
 import { supabase } from './supabase'
 
 interface WalletRow {
@@ -44,6 +44,18 @@ interface TransactionRow {
   recurring_id: string | null
   recurring_period: string | null
   created_at?: string
+}
+
+interface PlannedRow {
+  id: string
+  name: string
+  amount: number
+  due_date: string
+  month_only: boolean
+  category_id: string
+  wallet_id: string | null
+  note: string | null
+  transaction_id: string | null
 }
 
 // ---------- mapping ----------
@@ -115,6 +127,29 @@ const transactionToRow = (t: Transaction): TransactionRow => ({
   recurring_period: t.period ?? null,
 })
 
+const plannedFromRow = (r: PlannedRow): Planned => ({
+  id: r.id,
+  name: r.name,
+  amount: Number(r.amount),
+  dueDate: r.due_date,
+  monthOnly: r.month_only,
+  categoryId: r.category_id,
+  walletId: r.wallet_id ?? undefined,
+  note: r.note ?? undefined,
+  transactionId: r.transaction_id ?? undefined,
+})
+const plannedToRow = (p: Planned): PlannedRow => ({
+  id: p.id,
+  name: p.name,
+  amount: p.amount,
+  due_date: p.dueDate,
+  month_only: p.monthOnly,
+  category_id: p.categoryId,
+  wallet_id: p.walletId ?? null,
+  note: p.note ?? null,
+  transaction_id: p.transactionId ?? null,
+})
+
 // ---------- reads ----------
 
 function check<T>({ data, error }: { data: T | null; error: { message: string } | null }): T {
@@ -141,11 +176,12 @@ async function allTransactions(): Promise<TransactionRow[]> {
 }
 
 export async function fetchAll(): Promise<AppData> {
-  const [wallets, categories, recurring, transactions] = await Promise.all([
+  const [wallets, categories, recurring, transactions, planned] = await Promise.all([
     supabase.from('wallets').select('*').order('position').then(check),
     supabase.from('categories').select('*').order('position').then(check),
     supabase.from('recurring').select('*').order('created_at').then(check),
     allTransactions(),
+    supabase.from('planned').select('*').order('due_date').order('created_at').then(check),
   ])
   return {
     version: 1,
@@ -153,6 +189,7 @@ export async function fetchAll(): Promise<AppData> {
     categories: (categories as CategoryRow[]).map(categoryFromRow),
     recurring: (recurring as RecurringRow[]).map(recurringFromRow),
     transactions: transactions.map(transactionFromRow),
+    planned: (planned as PlannedRow[]).map(plannedFromRow),
   }
 }
 
@@ -194,6 +231,20 @@ export async function updateCategory(id: string, patch: Partial<Pick<Category, '
 
 export async function upsertRecurring(r: Recurring): Promise<void> {
   check(await supabase.from('recurring').upsert(recurringToRow(r)))
+}
+
+export async function upsertPlanned(p: Planned): Promise<void> {
+  check(await supabase.from('planned').upsert(plannedToRow(p)))
+}
+
+export async function deletePlanned(id: string): Promise<void> {
+  check(await supabase.from('planned').delete().eq('id', id))
+}
+
+/** "Đã chi": records the expense, then links the planned item to it. */
+export async function payPlanned(t: Transaction, p: Planned): Promise<void> {
+  await insertTransaction(t)
+  await upsertPlanned(p)
 }
 
 /**

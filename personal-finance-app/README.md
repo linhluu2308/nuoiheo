@@ -33,6 +33,7 @@ Other commands:
 ## One-time Supabase setup
 
 1. **Tables:** in Supabase → SQL Editor, run all of [supabase/schema.sql](supabase/schema.sql).
+   It is safe to re-run: when the file gains a table (e.g. `planned`), run it again before deploying.
 2. **Who may use the app:** in the SQL Editor, add your Google account:
    ```sql
    insert into private.allowed_emails (email) values ('you@gmail.com');
@@ -56,7 +57,7 @@ Other commands:
 
 | Folder | Contents |
 |---|---|
-| `src/pages/` | The 5 screens: Overview, Ledger, Wallets & categories, Recurring, Reports |
+| `src/pages/` | The 5 screens: Overview, Ledger, Wallets & categories, Planned (one-off + recurring), Reports |
 | `src/components/` | Shared pieces: layout, forms, charts |
 | `src/lib/` | The money calculations (`finance.ts`) and helpers; `finance.test.ts` checks them |
 | `src/data/` | Sign-in, loading and saving to Supabase |

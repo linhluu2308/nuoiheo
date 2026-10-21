@@ -6,13 +6,18 @@ import { useAppData } from '../data/AppDataContext'
 import { monthLabel, periodOf } from '../lib/dates'
 import {
   expenseByCategory,
+  isOverdue,
   pendingRecurring,
+  plannedThisMonth,
+  remainingPlanned,
   remainingToSpend,
   savingsSummary,
   totalExpense,
+  upcomingPlanned,
 } from '../lib/finance'
 import { formatVND } from '../lib/money'
 import { usePeriodParam } from '../lib/usePeriodParam'
+import { OverdueBadge, plannedDueLabel } from './Planned'
 
 export function Overview() {
   const { data, today } = useAppData()
@@ -23,6 +28,9 @@ export function Overview() {
   const remaining = remainingToSpend(data, period, today)
   const pending = isCurrent ? pendingRecurring(data, today) : []
   const pendingTotal = pending.reduce((s, r) => s + r.amount, 0)
+  const projected = remainingPlanned(data, period, today)
+  const plannedNow = isCurrent ? plannedThisMonth(data, today) : []
+  const upcoming = upcomingPlanned(data, today)
   const savings = savingsSummary(data, period)
   const byCategory = expenseByCategory(data, period)
   const max = byCategory[0]?.total ?? 0
@@ -46,7 +54,7 @@ export function Overview() {
 
       <div className="grid gap-3 md:grid-cols-3">
         <Card className="p-5 md:col-span-3">
-          <div className="text-sm text-ink-2">Còn bao nhiêu đến cuối tháng</div>
+          <div className="text-sm text-ink-2">Còn bao nhiêu đến cuối tháng{isCurrent && ' · thực tế'}</div>
           <div className="mt-1 text-5xl font-semibold tracking-tight">
             {remaining === null ? '—' : formatVND(remaining)}
           </div>
@@ -59,6 +67,17 @@ export function Overview() {
                   : 'Tiền trong các ví tiêu được. Không còn khoản cố định nào sắp trả trong tháng.'
                 : `Số dư các ví tiêu được vào cuối ${monthLabel(period).toLowerCase()}.`}
           </div>
+          {projected !== null && (
+            <div className="mt-4 border-t border-line pt-4">
+              <div className="text-sm text-ink-2">Còn bao nhiêu · dự tính</div>
+              <div className={`mt-1 text-2xl font-semibold ${projected < 0 ? 'text-bad' : ''}`}>{formatVND(projected)}</div>
+              <div className="mt-1 text-sm text-muted">
+                {plannedNow.length > 0
+                  ? `Trừ thêm ${formatVND(remaining! - projected)} cho ${plannedNow.length} khoản dự chi: ${plannedNow.map((p) => p.name).join(', ')}`
+                  : 'Không có khoản dự chi nào chưa chi trong tháng này.'}
+              </div>
+            </div>
+          )}
         </Card>
 
         <Card className="p-5">
@@ -79,6 +98,31 @@ export function Overview() {
           </div>
         </Card>
       </div>
+
+      <Card className="mt-3">
+        <Link to="/du-chi" className="flex items-center justify-between border-b border-line px-5 py-3 hover:bg-hover">
+          <h2 className="text-sm font-semibold">Dự chi</h2>
+          <span className="flex items-center gap-1 text-xs text-muted">
+            30 ngày tới <ArrowRight size={14} />
+          </span>
+        </Link>
+        {upcoming.length === 0 ? (
+          <EmptyState>Không có khoản dự chi nào trong 30 ngày tới.</EmptyState>
+        ) : (
+          <ul>
+            {upcoming.map((p) => (
+              <li key={p.id}>
+                <Link to="/du-chi" className="flex items-center gap-3 px-5 py-2.5 hover:bg-hover">
+                  <span className="min-w-0 flex-1 truncate text-sm">{p.name}</span>
+                  {isOverdue(p, today) && <OverdueBadge />}
+                  <span className="text-xs whitespace-nowrap text-muted">{plannedDueLabel(p)}</span>
+                  <span className="tabular w-28 text-right text-sm font-medium">{formatVND(p.amount)}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
 
       <Card className="mt-3">
         <div className="flex items-center justify-between border-b border-line px-5 py-3">

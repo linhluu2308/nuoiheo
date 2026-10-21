@@ -1,8 +1,8 @@
 // Every number the app shows — design.md §2 "Con số app phải tính ra".
 // Nothing here is stored; it is recomputed from transactions on every render.
 
-import { addMonths, dueDate, endOfMonth, periodOf } from './dates'
-import type { AppData, Category, Recurring, Transaction } from './types'
+import { addDays, addMonths, dueDate, endOfMonth, periodOf } from './dates'
+import type { AppData, Category, Planned, Recurring, Transaction } from './types'
 
 const inPeriod = (t: Transaction, period: string) => t.date.startsWith(period)
 const sumAmounts = (txs: Transaction[]) => txs.reduce((s, t) => s + t.amount, 0)
@@ -103,7 +103,7 @@ export function pendingRecurring(data: AppData, today: string): Recurring[] {
 }
 
 /**
- * "Còn bao nhiêu": spendable wallets' balance minus recurring items still due this month.
+ * "Còn bao nhiêu thực tế": spendable wallets' balance minus recurring items still due this month.
  * For a past month it is the spendable balance at the end of that month; future months → null.
  */
 export function remainingToSpend(data: AppData, period: string, today: string): number | null {
@@ -116,6 +116,41 @@ export function remainingToSpend(data: AppData, period: string, today: string): 
     .reduce((s, w) => s + (balances.get(w.id) ?? 0), 0)
   if (period === current) total -= pendingRecurring(data, today).reduce((s, r) => s + r.amount, 0)
   return total
+}
+
+// ---------- Planned (khoản dự chi) ----------
+
+const sumPlanned = (items: Planned[]) => items.reduce((s, p) => s + p.amount, 0)
+
+/** Rule 12: unpaid and past its date — or past its month, when only the month is known. */
+export function isOverdue(p: Planned, today: string): boolean {
+  if (p.transactionId) return false
+  return p.monthOnly ? periodOf(p.dueDate) < periodOf(today) : p.dueDate < today
+}
+
+/** Unpaid planned items, overdue first, then by date. */
+export function unpaidPlanned(data: AppData, today: string): Planned[] {
+  return data.planned
+    .filter((p) => !p.transactionId)
+    .sort((a, b) => Number(isOverdue(b, today)) - Number(isOverdue(a, today)) || a.dueDate.localeCompare(b.dueDate))
+}
+
+/** Unpaid items due this month (including month-only ones) or overdue. */
+export const plannedThisMonth = (data: AppData, today: string) =>
+  unpaidPlanned(data, today).filter((p) => periodOf(p.dueDate) <= periodOf(today))
+
+/** Unpaid items due up to the end of `lastPeriod` (overdue included). */
+export const plannedTotalUntil = (data: AppData, today: string, lastPeriod: string) =>
+  sumPlanned(unpaidPlanned(data, today).filter((p) => periodOf(p.dueDate) <= lastPeriod))
+
+/** Overview card: unpaid items due within the next `days` days, plus overdue ones. */
+export const upcomingPlanned = (data: AppData, today: string, days = 30) =>
+  unpaidPlanned(data, today).filter((p) => p.dueDate <= addDays(today, days))
+
+/** "Còn bao nhiêu dự tính": thực tế minus plannedThisMonth. Only for the current month, otherwise null. */
+export function remainingPlanned(data: AppData, period: string, today: string): number | null {
+  if (period !== periodOf(today)) return null
+  return remainingToSpend(data, period, today)! - sumPlanned(plannedThisMonth(data, today))
 }
 
 /**

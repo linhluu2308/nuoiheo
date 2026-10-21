@@ -9,6 +9,11 @@ export function todayISO(now = new Date()): string {
 
 export const periodOf = (date: string) => date.slice(0, 7)
 
+export function addDays(date: string, n: number): string {
+  const [y, m, d] = date.split('-').map(Number)
+  return todayISO(new Date(y, m - 1, d + n))
+}
+
 export function addMonths(period: string, n: number): string {
   const [y, m] = period.split('-').map(Number)
   const idx = y * 12 + (m - 1) + n

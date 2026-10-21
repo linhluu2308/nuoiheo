@@ -2,12 +2,13 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { todayISO } from '../lib/dates'
 import type { TransactionInput } from '../lib/draft'
 import { generateRecurring } from '../lib/finance'
-import type { AppData, Category, Recurring, Transaction, Wallet } from '../lib/types'
+import type { AppData, Category, Planned, Recurring, Transaction, Wallet } from '../lib/types'
 import { newId } from './id'
 import * as repo from './repository'
 import { seedData } from './seed'
 
 type RecurringInput = Omit<Recurring, 'id' | 'active' | 'startDate' | 'lastPeriod'>
+export type PlannedInput = Omit<Planned, 'id' | 'transactionId'>
 
 interface AppDataContextValue {
   data: AppData
@@ -25,6 +26,11 @@ interface AppDataContextValue {
   addRecurring: (r: RecurringInput) => void
   updateRecurring: (id: string, r: RecurringInput) => void
   setRecurringActive: (id: string, active: boolean) => void
+  addPlanned: (p: PlannedInput) => void
+  updatePlanned: (id: string, p: PlannedInput) => void
+  deletePlanned: (id: string) => void
+  /** "Đã chi": records the expense and links the planned item to it */
+  payPlanned: (id: string, t: TransactionInput) => void
 }
 
 const AppDataContext = createContext<AppDataContextValue | null>(null)
@@ -119,8 +125,16 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
           () => repo.updateTransaction(t),
         )
       },
+      // A planned item paid by this transaction becomes unpaid again (the database does the same: on delete set null).
       deleteTransaction: (id) =>
-        persist((d) => ({ ...d, transactions: d.transactions.filter((x) => x.id !== id) }), () => repo.deleteTransaction(id)),
+        persist(
+          (d) => ({
+            ...d,
+            transactions: d.transactions.filter((x) => x.id !== id),
+            planned: d.planned.map((p) => (p.transactionId === id ? { ...p, transactionId: undefined } : p)),
+          }),
+          () => repo.deleteTransaction(id),
+        ),
       addWallet: (input) => {
         const w: Wallet = { ...input, id: newId() }
         const position = data.wallets.length
@@ -163,6 +177,32 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         persist(
           (d) => ({ ...d, recurring: d.recurring.map((x) => (x.id === id ? r : x)) }),
           () => repo.upsertRecurring(r).then(() => loadFromServer(today).then(setData)),
+        )
+      },
+      addPlanned: (input) => {
+        const p: Planned = { ...input, id: newId() }
+        persist((d) => ({ ...d, planned: [...d.planned, p] }), () => repo.upsertPlanned(p))
+      },
+      updatePlanned: (id, input) => {
+        const old = data.planned.find((x) => x.id === id)
+        if (!old) return
+        const p: Planned = { ...input, id, transactionId: old.transactionId }
+        persist((d) => ({ ...d, planned: d.planned.map((x) => (x.id === id ? p : x)) }), () => repo.upsertPlanned(p))
+      },
+      deletePlanned: (id) =>
+        persist((d) => ({ ...d, planned: d.planned.filter((x) => x.id !== id) }), () => repo.deletePlanned(id)),
+      payPlanned: (id, input) => {
+        const old = data.planned.find((x) => x.id === id)
+        if (!old) return
+        const t: Transaction = { ...input, id: newId(), createdAt: new Date().toISOString() }
+        const p: Planned = { ...old, transactionId: t.id }
+        persist(
+          (d) => ({
+            ...d,
+            transactions: [...d.transactions, t],
+            planned: d.planned.map((x) => (x.id === id ? p : x)),
+          }),
+          () => repo.payPlanned(t, p),
         )
       },
     }

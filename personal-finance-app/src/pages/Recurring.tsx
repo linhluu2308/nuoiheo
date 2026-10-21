@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Pencil, Plus } from 'lucide-react'
 import { CategorySelect, WalletSelect } from '../components/Selects'
-import { Button, Card, EmptyState, Field, Modal, PageHeader, inputClass } from '../components/ui'
+import { Button, Card, EmptyState, Field, Modal, SectionHeader, inputClass } from '../components/ui'
 import { useAppData } from '../data/AppDataContext'
 import { formatDate } from '../lib/dates'
 import { recurringStatus, type RecurringStatus } from '../lib/finance'
@@ -26,7 +26,8 @@ function StatusBadge({ status }: { status: RecurringStatus }) {
   return <span className={`rounded-md px-2 py-0.5 text-xs whitespace-nowrap ${styles[status.kind]}`}>{text}</span>
 }
 
-export function RecurringPage() {
+/** "Hằng tháng" group of the Dự chi screen. */
+export function RecurringSection() {
   const { data, today, setRecurringActive } = useAppData()
   const [editing, setEditing] = useState<Recurring | 'new' | null>(null)
   const walletName = new Map(data.wallets.map((w) => [w.id, w.name]))
@@ -35,17 +36,15 @@ export function RecurringPage() {
 
   return (
     <>
-      <PageHeader
-        title="Khoản cố định"
-        actions={
+      <SectionHeader
+        title="Hằng tháng"
+        hint="Khoản cố định: đến ngày, app tự ghi một khoản chi. Tháng nào số tiền khác (ví dụ tiền điện) thì sửa khoản đó trong Sổ ghi."
+        action={
           <Button variant="primary" onClick={() => setEditing('new')}>
             <Plus size={16} /> Thêm khoản cố định
           </Button>
         }
       />
-      <p className="-mt-3 mb-4 text-sm text-muted">
-        Đến ngày, app tự ghi một khoản chi. Tháng nào số tiền khác (ví dụ tiền điện) thì sửa khoản đó trong Sổ ghi.
-      </p>
 
       <Card>
         {items.length === 0 ? (

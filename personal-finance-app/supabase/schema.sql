@@ -98,12 +98,32 @@ grant select, insert, update, delete on public.transactions to authenticated;
 
 create index if not exists transactions_user_date on public.transactions (user_id, date);
 
+-- Khoản dự chi (design.md rules 10–12). Paid = linked to the expense recorded for it;
+-- deleting that expense makes it unpaid again.
+create table if not exists public.planned (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users on delete cascade,
+  name text not null check (length(trim(name)) > 0),
+  amount bigint not null check (amount > 0),
+  -- month_only: only the month is known, due_date is its first day
+  due_date date not null,
+  month_only boolean not null default false,
+  category_id uuid not null references public.categories on delete restrict,
+  wallet_id uuid references public.wallets on delete restrict,
+  note text,
+  transaction_id uuid unique references public.transactions on delete set null,
+  created_at timestamptz not null default now(),
+  constraint planned_month_first_day check (not month_only or extract(day from due_date) = 1)
+);
+-- Added, edited (upsert = insert + update) and deleted from the Dự chi screen.
+grant select, insert, update, delete on public.planned to authenticated;
+
 -- ---------- Row-level security: your own rows, and only if your email is allowed ----------
 
 do $$
 declare t text;
 begin
-  foreach t in array array['wallets', 'categories', 'recurring', 'transactions'] loop
+  foreach t in array array['wallets', 'categories', 'recurring', 'transactions', 'planned'] loop
     execute format('alter table public.%I enable row level security', t);
     execute format('drop policy if exists owner_all on public.%I', t);
     execute format(

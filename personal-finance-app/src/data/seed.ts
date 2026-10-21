@@ -24,5 +24,6 @@ export function seedData(): AppData {
     ],
     transactions: [],
     recurring: [],
+    planned: [],
   }
 }
