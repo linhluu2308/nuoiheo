@@ -40,6 +40,8 @@ create table if not exists public.wallets (
   position int not null default 0,
   created_at timestamptz not null default now()
 );
+-- The app reads, adds and edits wallets (upsert = insert + update); it never deletes them.
+grant select, insert, update on public.wallets to authenticated;
 
 create table if not exists public.categories (
   id uuid primary key default gen_random_uuid(),
@@ -50,6 +52,8 @@ create table if not exists public.categories (
   position int not null default 0,
   created_at timestamptz not null default now()
 );
+-- Categories are hidden (active = false), never deleted.
+grant select, insert, update on public.categories to authenticated;
 
 create table if not exists public.recurring (
   id uuid primary key default gen_random_uuid(),
@@ -64,6 +68,8 @@ create table if not exists public.recurring (
   last_period text check (last_period ~ '^\d{4}-\d{2}$'),
   created_at timestamptz not null default now()
 );
+-- Recurring items are saved by upsert (insert + update) and turned off, never deleted.
+grant select, insert, update on public.recurring to authenticated;
 
 create table if not exists public.transactions (
   id uuid primary key default gen_random_uuid(),
@@ -87,6 +93,8 @@ create table if not exists public.transactions (
   -- (NULLs are distinct, so manual transactions are unaffected.)
   constraint transactions_one_per_recurring_month unique (recurring_id, recurring_period)
 );
+-- The only table the app deletes from.
+grant select, insert, update, delete on public.transactions to authenticated;
 
 create index if not exists transactions_user_date on public.transactions (user_id, date);
 
