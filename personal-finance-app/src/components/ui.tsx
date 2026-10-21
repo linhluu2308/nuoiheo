@@ -62,6 +62,19 @@ export function PageHeader({ title, actions }: { title: string; actions?: ReactN
   )
 }
 
+/** Heading for one group on a page that has several (e.g. Dự chi: Một lần / Hằng tháng). */
+export function SectionHeader({ title, hint, action }: { title: string; hint?: string; action?: ReactNode }) {
+  return (
+    <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+      <div className="min-w-0 flex-1">
+        <h2 className="text-base font-semibold">{title}</h2>
+        {hint && <p className="mt-0.5 text-sm text-muted">{hint}</p>}
+      </div>
+      {action}
+    </div>
+  )
+}
+
 export function Segmented<T extends string>({
   value,
   options,

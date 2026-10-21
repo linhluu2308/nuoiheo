@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
-import { ChartColumn, LayoutDashboard, LogOut, NotebookPen, Plus, Repeat, Wallet } from 'lucide-react'
+import { CalendarClock, ChartColumn, LayoutDashboard, LogOut, NotebookPen, Plus, Wallet } from 'lucide-react'
 import { useAppData } from '../data/AppDataContext'
 import { signOut } from '../data/AuthGate'
 import { TransactionForm } from './TransactionForm'
@@ -10,7 +10,7 @@ const NAV = [
   { to: '/', label: 'Tổng quan', short: 'Tổng quan', icon: LayoutDashboard },
   { to: '/so-ghi', label: 'Sổ ghi', short: 'Sổ ghi', icon: NotebookPen },
   { to: '/vi', label: 'Ví & khoản mục', short: 'Ví', icon: Wallet },
-  { to: '/khoan-co-dinh', label: 'Khoản cố định', short: 'Cố định', icon: Repeat },
+  { to: '/du-chi', label: 'Dự chi', short: 'Dự chi', icon: CalendarClock },
   { to: '/bao-cao', label: 'Báo cáo thu – chi', short: 'Báo cáo', icon: ChartColumn },
 ]
 

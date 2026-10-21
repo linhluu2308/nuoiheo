@@ -7,13 +7,18 @@ import {
   dailyExpense,
   expenseByCategory,
   generateRecurring,
+  isOverdue,
+  plannedTotalUntil,
+  remainingPlanned,
   remainingToSpend,
   savingsSummary,
   totalExpense,
+  unpaidPlanned,
+  upcomingPlanned,
   walletBalances,
 } from './finance'
 import { parseAmount } from './money'
-import type { AppData, Transaction } from './types'
+import type { AppData, Planned, Transaction } from './types'
 
 const TODAY = '2026-10-19'
 const PERIOD = '2026-10'
@@ -38,6 +43,7 @@ function base(): AppData {
     ],
     transactions: [],
     recurring: [],
+    planned: [],
   }
 }
 
@@ -164,6 +170,61 @@ describe('tiêu chí xong', () => {
     const totals = (x: AppData) => expenseByCategory(x, '2026-09').map((c) => [c.category.name, c.total])
     expect(totals(hidden)).toEqual([['Giải trí', 400_000]])
     expect(categoryTrend(hidden, ['2026-09', '2026-10']).rows).toEqual(categoryTrend(d, ['2026-09', '2026-10']).rows)
+  })
+})
+
+describe('tiêu chí xong — khoản dự chi', () => {
+  const insurance: Planned = { id: 'bh', name: 'Bảo hiểm xe', amount: 1_200_000, dueDate: '2026-10-31', monthOnly: false, categoryId: 'mua' }
+  const withPlanned = (...planned: Planned[]): AppData => ({ ...base(), planned })
+
+  it('#15 khoản dự chi tháng này: chỉ "dự tính" giảm', () => {
+    const d = withPlanned(insurance)
+    expect(remainingToSpend(d, PERIOD, TODAY)).toBe(remainingToSpend(base(), PERIOD, TODAY))
+    expect(remainingPlanned(d, PERIOD, TODAY)).toBe(remainingToSpend(d, PERIOD, TODAY)! - 1_200_000)
+    expect(upcomingPlanned(d, TODAY).map((p) => p.id)).toEqual(['bh'])
+  })
+
+  it('#16 khoản chỉ ghi tháng 12: không đổi tháng này, có trong tổng 3 tháng tới', () => {
+    const gift: Planned = { id: 'tet', name: 'Quà Tết', amount: 5_000_000, dueDate: '2026-12-01', monthOnly: true, categoryId: 'mua' }
+    const d = withPlanned(gift)
+    expect(remainingToSpend(d, PERIOD, TODAY)).toBe(remainingToSpend(base(), PERIOD, TODAY))
+    expect(remainingPlanned(d, PERIOD, TODAY)).toBe(remainingToSpend(d, PERIOD, TODAY))
+    expect(plannedTotalUntil(d, TODAY, '2026-12')).toBe(5_000_000)
+    expect(plannedTotalUntil(d, TODAY, '2026-11')).toBe(0)
+    expect(upcomingPlanned(d, TODAY)).toEqual([])
+  })
+
+  it('#17–18 "Đã chi" với số tiền khác, rồi xóa khoản chi đó', () => {
+    const before = withPlanned(insurance)
+    const paid = add({ ...before, planned: [{ ...insurance, transactionId: 'id-paid' }] })
+    paid.transactions.push({
+      id: 'id-paid', type: 'expense', amount: 1_250_000, date: TODAY, walletId: 'bidv', categoryId: 'mua', createdAt: '',
+    })
+    expect(totalExpense(paid, PERIOD)).toBe(1_250_000)
+    expect(unpaidPlanned(paid, TODAY)).toEqual([])
+    // the real expense replaces the planned one: subtracted once, at the amount actually paid
+    expect(remainingPlanned(paid, PERIOD, TODAY)).toBe(remainingPlanned(before, PERIOD, TODAY)! + 1_200_000 - 1_250_000)
+
+    const deleted: AppData = { ...paid, transactions: [], planned: [insurance] }
+    expect(unpaidPlanned(deleted, TODAY).map((p) => p.id)).toEqual(['bh'])
+  })
+
+  it('#19 quá hạn: hiện trên cùng, vẫn được trừ', () => {
+    const late: Planned = { ...insurance, id: 'late', name: 'Sửa xe', dueDate: '2026-10-10', amount: 800_000 }
+    const lastMonth: Planned = { ...insurance, id: 'sep', dueDate: '2026-09-01', monthOnly: true, amount: 300_000 }
+    const d = withPlanned(insurance, late, lastMonth)
+    expect(isOverdue(late, TODAY)).toBe(true)
+    expect(isOverdue(lastMonth, TODAY)).toBe(true)
+    expect(isOverdue(insurance, TODAY)).toBe(false)
+    expect(isOverdue({ ...late, transactionId: 'x' }, TODAY)).toBe(false)
+    // a month-only item for the current month is not overdue
+    expect(isOverdue({ ...lastMonth, dueDate: '2026-10-01' }, TODAY)).toBe(false)
+    expect(unpaidPlanned(d, TODAY).map((p) => p.id)).toEqual(['sep', 'late', 'bh'])
+    expect(remainingPlanned(d, PERIOD, TODAY)).toBe(remainingToSpend(d, PERIOD, TODAY)! - 2_300_000)
+  })
+
+  it('"dự tính" chỉ có ở tháng hiện tại', () => {
+    expect(remainingPlanned(withPlanned(insurance), '2026-09', TODAY)).toBeNull()
   })
 })
 

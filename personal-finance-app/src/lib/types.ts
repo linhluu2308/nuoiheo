@@ -1,4 +1,4 @@
-// Data model — mirrors design.md §4. Only these four things are stored;
+// Data model — mirrors design.md §4. Only these five things are stored;
 // every number shown in the app is computed in finance.ts.
 
 export type WalletKind = 'spendable' | 'savings'
@@ -54,10 +54,27 @@ export interface Recurring {
   lastPeriod?: string
 }
 
+/** Khoản dự chi: a one-off expense planned ahead. Never recorded automatically. */
+export interface Planned {
+  id: string
+  name: string
+  amount: number
+  /** YYYY-MM-DD — the first of the month when monthOnly */
+  dueDate: string
+  /** only the month is known */
+  monthOnly: boolean
+  categoryId: string
+  walletId?: string
+  note?: string
+  /** the expense recorded for it; unset = not paid yet */
+  transactionId?: string
+}
+
 export interface AppData {
   version: 1
   wallets: Wallet[]
   categories: Category[]
   transactions: Transaction[]
   recurring: Recurring[]
+  planned: Planned[]
 }
